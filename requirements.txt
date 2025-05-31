@@ -1,0 +1,7 @@
+discord.py
+yt-dlp
+google-api-python-client
+matplotlib
+aiohttp
+PyNaCl
+python-dotenv
