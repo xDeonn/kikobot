@@ -705,7 +705,7 @@ async def skip(interaction: discord.Interaction):
     if not vc or not vc.is_connected():
         await interaction.followup.send("I'm not in a voice channel.", ephemeral=True)
         return
-    if not vc.is_playing() and not vc.is_paused():
+    if not vc.is_playing() and not vc.is_paused() and len(started_tasks) == 0:
         await interaction.followup.send("Nothing is playing to skip.", ephemeral=True)
         return
 
@@ -718,7 +718,7 @@ async def skip(interaction: discord.Interaction):
 
     Music_Queue.repeat = False
     vc.stop()
-    await interaction.followup.send(f"Skipped **{skipped_title}** and stopped all randomplay tasks.")
+    await interaction.followup.send(f"Skipped **{skipped_title}**.")
 
 
 @tree.command(name="kill", description="Stops playback, clears queue, and leaves the channel.")
