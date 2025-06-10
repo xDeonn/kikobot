@@ -27,3 +27,6 @@ jobs:
         context: .
         push: true
         tags: ghcr.io/xdeonn/kikobot:latest
+    - name: Notify webhook (trigger redeploy)
+      run: |
+        curl -X POST ${{ secrets.DEPLOY_WEBHOOK_URL }}
