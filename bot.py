@@ -1320,7 +1320,6 @@ if __name__ == "__main__":
         import io
         import traceback # For detailed error logging
 
-        bot.run(BOT_TOKEN)
         try:
             bot.run(BOT_TOKEN)
         except discord.LoginFailure:
