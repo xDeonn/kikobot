@@ -57,7 +57,7 @@ async def on_ready():
     # print("Commands synced.") # Optional confirmation
 
     welcome_messages = [
-        "I'm ALIVEEEEEEEEEEE!",
+        "I'm ALIVEEEEEEEEEEEE!",
         "Ready to drop some beats!",
         "Bot online and ready for action.",
     ]
