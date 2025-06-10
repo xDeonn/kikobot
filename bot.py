@@ -1302,6 +1302,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 # --- Run the Bot ---
 if __name__ == "__main__":
+    print("STARTING!")
     if not BOT_TOKEN:
         print("Error: BOT_TOKEN is not set in config.py or environment variables.")
     elif not YOUTUBE_API_KEY:
