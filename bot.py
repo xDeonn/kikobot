@@ -600,6 +600,7 @@ async def playnext(interaction: discord.Interaction):
 @tree.command(name="niggaphone", description="Mentions a user and says nigga phone")
 @app_commands.describe(user="User")
 async def niggaphone(interaction: discord.Interaction, user: discord.Member):
+    await interaction.response.send_message("nigga phoning...", ephemeral=True)
     await interaction.channel.send(f"{user.mention} nigga phone")
     return
 
