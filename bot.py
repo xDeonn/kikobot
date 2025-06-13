@@ -53,7 +53,7 @@ def update_last_activity():
 @bot.event
 async def on_ready():
     # Sync commands if needed (usually only once or after changes)
-    # await tree.sync()
+    await tree.sync()
     # print("Commands synced.") # Optional confirmation
 
     welcome_messages = [
@@ -596,6 +596,13 @@ async def playnext(interaction: discord.Interaction):
 
 
 # --- Command Implementations ---
+
+@tree.command(name="niggaphone", description="Mentions a user and says nigga phone")
+@app_commands.describe(user="User")
+async def niggaphone(interaction: discord.Interaction, user: discord.Member):
+    await interaction.channel.send(f"{user.mention} nigga phone")
+    return
+
 
 @tree.command(name="play", description="Plays a song or playlist, or adds it to the queue.")
 @app_commands.describe(query="A song title, YouTube URL, or playlist URL")
