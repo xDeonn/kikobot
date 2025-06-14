@@ -597,7 +597,7 @@ async def playnext(interaction: discord.Interaction):
 
 # --- Command Implementations ---
 
-@tree.command(name="niggaphone", description="Mentions a user and says nigga phone")
+@tree.command(name="niggaphone", description="Nigga phones an user.")
 @app_commands.describe(user="User")
 async def niggaphone(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.send_message("nigga phoning...", ephemeral=True)
