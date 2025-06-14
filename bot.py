@@ -80,24 +80,6 @@ class MusicQueue:
         self.repeat = False
         self.current_player = None # Keep track of the current player
 
-    async def bulk_enqueue_flat(self, flat_entries, requester, is_dj=False):
-        success = 0
-        for entry in flat_entries:
-            try:
-                player = await YTDLSource.from_flat_info(entry, loop=bot.loop)
-                if player:
-                    player.data['requester'] = requester
-                    player.data['is_dj'] = is_dj
-                    self.queue.append({
-                        "player": player,
-                        "title": player.title,
-                        "url": player.youtube_url
-                    })
-                    success += 1
-            except Exception as e:
-                print(f"Error during bulk enqueue: {e}")
-        return success
-
     #Adding functions of a queue
     async def enqueue(self, url: str, requester, is_dj=False):
         # Replace youtu.be links with youtube.com/watch?v=
@@ -210,7 +192,6 @@ ffmpeg_options_base = {
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
-
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, youtube_url, volume=0.5):
         super().__init__(source, volume)
@@ -220,32 +201,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.youtube_url = youtube_url # Store the original YouTube page URL
 
     # Inside the YTDLSource class
-
-    @classmethod
-    async def from_flat_info(cls, flat_info, *, loop=None):
-        loop = loop or asyncio.get_event_loop()
-        video_data = await loop.run_in_executor(None, lambda: ytdl.extract_info(flat_info['url'], download=False))
-        if not video_data:
-            print(f"YTDL Error: Failed to fully extract info for {flat_info['url']}")
-            return None
-
-        stream_url = video_data.get('url')
-        if not stream_url and 'formats' in video_data:
-            for f in reversed(video_data['formats']):
-                if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                    stream_url = f.get('url')
-                    break
-
-        if not stream_url:
-            print(f"YTDL Error: No audio stream found for {flat_info['url']}")
-            return None
-
-        ffmpeg_opts = ffmpeg_options_base.copy()
-        ffmpeg_opts['executable'] = ffmpeg_path
-        eq_filters = generate_equalizer_filters(equalizer_settings)
-        ffmpeg_opts['options'] += f' -af "{eq_filters}"' if eq_filters else ''
-
-        return cls(discord.FFmpegPCMAudio(stream_url, **ffmpeg_opts), data=video_data, youtube_url=video_data.get('webpage_url'))
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=True): # Always stream=True for this bot logic
@@ -510,7 +465,10 @@ async def get_playlist_songs(playlist_id: str, max_songs=50):
                     # Ensure we have a URL, fallback to id if needed
                     video_url = entry.get('url') or f"https://www.youtube.com/watch?v={entry.get('id')}"
                     if video_url:
-                        songs.append(entry)
+                        songs.append({
+                            "url": video_url,
+                            "title": entry.get('title', 'Unknown Title')
+                        })
                         count += 1
                 if count >= max_songs:
                     print(f"Reached max songs limit ({max_songs}) for playlist {playlist_id}")
@@ -697,38 +655,16 @@ async def play(interaction: discord.Interaction, query: str):
                 await interaction.followup.send("Couldn't find any songs in that playlist, or it might be private.")
                 return
 
-            if not songs:
-                await interaction.followup.send("Couldn't find any songs in that playlist, or it might be private.")
-                return
+            enqueued_count = 0
+            for song in songs:
+                if await Music_Queue.enqueue(song['url'], interaction.user, is_dj=False):
+                    enqueued_count += 1
 
-            first_entry = songs[0]
-            rest_entries = songs[1:]
+            await interaction.followup.send(f"Added {enqueued_count} songs from the playlist to the queue.")
 
-            # Try to enqueue the first song immediately
-            first_player = await YTDLSource.from_flat_info(first_entry, loop=bot.loop)
-            if not first_player:
-                await interaction.followup.send("Failed to load the first song of the playlist.")
-                return
-
-            first_player.data['requester'] = interaction.user
-            first_player.data['is_dj'] = False
-            Music_Queue.queue.append({
-                "player": first_player,
-                "title": first_player.title,
-                "url": first_player.youtube_url
-            })
-
-            # Start playback immediately
-            await interaction.followup.send(f"🎵 Now playing: **{first_player.title}** (rest of playlist loading...)")
-            await playnext(interaction)
-
-            # Enqueue remaining songs in the background
-            async def load_remaining():
-                count = await Music_Queue.bulk_enqueue_flat(rest_entries, interaction.user, is_dj=False)
-                print(f"✅ Background queued {count} additional songs from playlist.")
-
-            asyncio.create_task(load_remaining())
-
+            # Start playback if not already playing
+            if not vc.is_playing() and not vc.is_paused():
+                await playnext(interaction)
             return # Finished handling playlist
 
     # --- Handle single song URL or search query ---
