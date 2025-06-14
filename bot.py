@@ -210,32 +210,6 @@ ffmpeg_options_base = {
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
-@classmethod
-async def from_flat_info(cls, flat_info, *, loop=None):
-    loop = loop or asyncio.get_event_loop()
-    video_data = await loop.run_in_executor(None, lambda: ytdl.extract_info(flat_info['url'], download=False))
-    if not video_data:
-        print(f"YTDL Error: Failed to fully extract info for {flat_info['url']}")
-        return None
-
-    stream_url = video_data.get('url')
-    if not stream_url and 'formats' in video_data:
-        for f in reversed(video_data['formats']):
-            if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                stream_url = f.get('url')
-                break
-
-    if not stream_url:
-        print(f"YTDL Error: No audio stream found for {flat_info['url']}")
-        return None
-
-    ffmpeg_opts = ffmpeg_options_base.copy()
-    ffmpeg_opts['executable'] = ffmpeg_path
-    eq_filters = generate_equalizer_filters(equalizer_settings)
-    ffmpeg_opts['options'] += f' -af "{eq_filters}"' if eq_filters else ''
-
-    return cls(discord.FFmpegPCMAudio(stream_url, **ffmpeg_opts), data=video_data, youtube_url=video_data.get('webpage_url'))
-
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, youtube_url, volume=0.5):
@@ -246,6 +220,32 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.youtube_url = youtube_url # Store the original YouTube page URL
 
     # Inside the YTDLSource class
+
+    @classmethod
+    async def from_flat_info(cls, flat_info, *, loop=None):
+        loop = loop or asyncio.get_event_loop()
+        video_data = await loop.run_in_executor(None, lambda: ytdl.extract_info(flat_info['url'], download=False))
+        if not video_data:
+            print(f"YTDL Error: Failed to fully extract info for {flat_info['url']}")
+            return None
+
+        stream_url = video_data.get('url')
+        if not stream_url and 'formats' in video_data:
+            for f in reversed(video_data['formats']):
+                if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
+                    stream_url = f.get('url')
+                    break
+
+        if not stream_url:
+            print(f"YTDL Error: No audio stream found for {flat_info['url']}")
+            return None
+
+        ffmpeg_opts = ffmpeg_options_base.copy()
+        ffmpeg_opts['executable'] = ffmpeg_path
+        eq_filters = generate_equalizer_filters(equalizer_settings)
+        ffmpeg_opts['options'] += f' -af "{eq_filters}"' if eq_filters else ''
+
+        return cls(discord.FFmpegPCMAudio(stream_url, **ffmpeg_opts), data=video_data, youtube_url=video_data.get('webpage_url'))
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=True): # Always stream=True for this bot logic
